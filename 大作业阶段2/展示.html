@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="js/echarts.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <style>
+        #main {
+            width: 500px;
+            height: 500px;
+        }
+
+        .custom-select {
+            position: relative;
+            display: inline-block;
+            width: 200px;
+            height: 40px;
+            background-color: #f2f2f2;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .custom-select select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            padding: 0 20px;
+            font-size: 16px;
+            color: #555;
+            cursor: pointer;
+        }
+
+        .custom-select:after {
+            content: '\25BC';
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            font-size: 24px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!--下拉框设置-->
+    <div style="width: 1600px;height: 1000px;background:  url(./背景2.jpg);"></div>
+    <div class="custom-select" style="top: -1000px">
+    <select id="dataNameSelect">
+        <option value="GDP">GDP</option>
+        <option value="人口">人口</option>
+        <option value="第一产业">第一产业</option>
+        <option value="第二产业">第二产业</option>
+        <option value="第三产业">第三产业</option>
+    </select>
+    </div>
+    <div class="custom-select"style="top: -1000px">
+        <select id="yearSelect" >
+            <option value="2022">2022年</option>
+            <option value="2021">2021年</option>
+            <option value="2020">2020年</option>
+            <option value="2019">2019年</option>
+            <option value="2018">2018年</option>
+            <option value="2017">2017年</option>
+            <option value="2016">2016年</option>
+            <option value="2015">2015年</option>
+            <option value="2014">2014年</option>
+            <option value="2013">2013年</option>
+            <option value="2012">2012年</option>
+            <!-- 添加更多年份选项 -->
+        </select>
+    </div>
+    <div class="custom-select" style="top: -1000px">
+    <select id="databar">
+        <option value="地图">地图</option>
+        <option value="柱状图">柱状图</option>
+    </select>
+    </div>
+    <script>
+        var data1 = {};
+        var name = '地图';
+        var selectedYear = '2022'; // 默认选择的年份
+        var selectedDataName = 'GDP'; // 默认选择的数据名称
+        var myChart = echarts.init(document.querySelector("div"));//初始化实例
+        $.get('data1.json', function(data) {//读取数据
+            for (var key in data) {
+                for (var j in data[key]) {
+                    if (String(j) === selectedYear + '年') {
+
+                        var x = []
+                        x.push(data[key][j]['GDP']);
+                        x.push(data[key][j]['人口']);
+                        x.push(data[key][j]['第一产业']);
+                        x.push(data[key][j]['第二产业']);
+                        x.push(data[key][j]['第三产业']);
+
+                        data1[key] = x;
+
+                    }
+                }
+            }
+            myChart.setOption({//初始化设置
+        visualMap: {
+                orient: 'vertical',
+                top: 'center', // 设置垂直居中
+                min: 5000,
+                max: 50000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['lightskyblue', 'yellow', 'orangered']
+                }
+
+            }
+    });
+
+            updateMap(); // 获取数据后初始化地图
+        });
+        function updateMap() {//更新地图
+    $.get('China.json', function(ret) {
+        echarts.registerMap('china', ret);
+        var option = {
+            tooltip: {
+                show: false,
+                trigger: 'none',
+            },
+            geo: {
+                type: 'map',
+                map: 'china',
+                roam: true,
+                label: {
+                    show: true,
+                    fontSize: 10,
+                    position: 'right'
+                },
+                itemStyle: {
+                    areaColor: '#f4f4f4',
+                    borderColor: '#999'
+                },
+                emphasis: {
+                    itemStyle: {
+                        areaColor: '#ddd'
+                    }
+                }
+            },
+            series: [{
+                animationDurationUpdate: 1000,
+                type: 'map',
+                geoIndex: 0,
+                data: convertData(data1),//处理数据
+                symbolSize: 10,
+                label: {
+                    show: true,
+                    formatter: '{b}',
+                    position: 'right'
+                },
+                itemStyle: {
+                    color: 'red'
+                },
+                tooltip: {
+                    show: true,
+                trigger: 'item',
+                formatter: function(params) {//展示数据
+                        console.log(params.data)
+                    var value = params.data.value;
+                    var html = params.name + '<br>';
+                    html += 'GDP: ' + value[0] + '元/人' + '<br>';
+                    html += '年末常住人口: ' + value[1] + '万人'+'<br>';
+                    html += '第一产业增加值: ' + value[2] +'亿元'+'<br>';
+                    html += '第二产业增加值: ' + value[3] + '亿元'+'<br>';
+                    html += '第三产业增加值: ' + value[4] + '亿元';
+
+                    return html;
+                }
+                }
+            }],
+
+        };
+        myChart.setOption(option);
+    });
+        }
+        function updatebar(ret) {
+    if (ret === '地图') {
+        myChart.clear();
+        updateVisualMap(selectedDataName);
+        updateMap();
+    } else if (ret === '柱状图') {
+
+        // 对数据进行降序排序
+        var sortedData = convertData(data1).sort(function (a, b) {
+            return a.value[0] - b.value[0]; // 以GDP数据为例进行降序排序
+        });
+
+        const barOption = {
+            xAxis: {
+                type: 'value'
+            },
+            yAxis: {
+                type: 'category',
+                axisLabel: {
+                    rotate: 30
+                },
+                data: sortedData.map(function (item) {
+                    return item.name;
+                })
+            },
+            animationDurationUpdate: 1000,
+            series: {
+                type: 'bar',
+                id: 'population',
+                animationDurationUpdate: 1000,
+                data: sortedData.map(function (item) {
+                    if (selectedDataName === 'GDP') {
+                        return item.value[0];
+                    } else if (selectedDataName === '人口') {
+                        return item.value[1];
+                    } else if (selectedDataName === '第一产业') {
+                        return item.value[2];
+                    } else if (selectedDataName === '第二产业') {
+                        return item.value[3];
+                    } else if (selectedDataName === '第三产业') {
+                        return item.value[4];
+                    }
+                }),
+                itemStyle: {
+                    color: function (params) {
+                        // 根据柱子的数据值返回对应的颜色
+                        var colorList = ['#c23531', '#314656', '#61a0a8', '#dd8668', '#91c7ae']; // 预定义的颜色列表
+                        var customColorList = []; // 用于存放生成的颜色代码
+
+                        for (var i = 0; i < 31; i++) {
+                            customColorList.push(colorList[i % colorList.length]);
+                        }
+
+                        return customColorList[params.dataIndex];
+                    }
+                },
+                universalTransition: true
+            }
+        };
+        myChart.clear();
+        myChart.setOption(barOption);
+    }
+}
+
+        function convertData(data) {//将数据处理成适合echarts的格式
+            var convertedData = [];
+            for (var key in data) {
+                convertedData.push({
+                    name: key,      // 使用原始数据的键作为名称
+                    value: data[key]  // 使用原始数据的值作为数值
+                });
+            }
+            return convertedData;  // 返回转换后的数据数组
+        }
+        function updateVisualMap(dataName) {//更新颜色，使不同颜色对应不同数据，范围选择使整体看起来较明显的大小
+    var visualMapConfig = {};
+    // 根据选择的数据名称设置 visualMap 的范围和颜色
+    if (dataName === 'GDP') {
+        myChart.setOption({//初始化设置
+        visualMap: {
+                orient: 'vertical',
+                top: 'center', // 设置垂直居中
+                min: 5000,
+                max: 50000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['lightskyblue', 'yellow', 'orangered']
+                }
+
+            }
+    });
+    } else if (dataName === '人口') {
+        myChart.setOption({//初始化设置
+        visualMap: {
+                orient: 'vertical',
+                top: 'center', // 设置垂直居中
+                min: 1000,
+                max: 15000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['#f4c700', '#d7e6ef', '#0075c8']
+                }
+
+            }
+    });
+    }else if (dataName === '第一产业') {
+         myChart.setOption({//初始化设置
+        visualMap: {
+                orient: 'vertical',
+                top: 'center', // 设置垂直居中
+                min: 2000,
+                max: 50000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['#f5f5f5', '#ff7f50', '#ff4500']
+                }
+
+            }
+    });
+    }else if (dataName === '第二产业') {
+         myChart.setOption({//初始化设置
+        visualMap: {
+                orient: 'vertical',
+                top: 'center', // 设置垂直居中
+                min: 2000,
+                max: 50000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['#d3f8e2', '#deecdd', '#fed7c4']
+                }
+
+            }
+    });
+    }else if (dataName === '第三产业') {
+        myChart.setOption({//初始化设置
+        visualMap: {
+                orient: 'vertical',
+                top: 'center', // 设置垂直居中
+                min: 2000,
+                max: 50000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                    color: ['#f1eef6', '#bdc9e1', '#74a9cf']
+                }
+
+            }
+    });
+    }
+    // 其他数据名称的设置可以根据需求继续添加
+
+    updateMap();
+        }
+        // 监听数据名称选择变化事件
+        $('#dataNameSelect').on('change', function() {
+    // 获取选中的数据名称
+        selectedDataName = $(this).val();
+        console.log(selectedDataName)
+    // 根据选择的数据名称更新 visualMap
+            updateVisualMap(selectedDataName);
+        });
+
+
+$('#databar').on('change', function ()
+        {
+            name = $(this).val();
+            updatebar(name);
+
+        });
+
+
+
+        // 监听年份选择变化事件
+        $('#yearSelect').on('change', function() {
+            // 获取选中的年份
+            selectedYear = $(this).val();
+            // 发送GET请求获取data.json文件的数据
+            $.get('data1.json', function(data) {
+            for (var key in data) {
+                for (var j in data[key]) {
+                    if (String(j) === selectedYear + '年') {
+                        var x = []
+                        x.push(data[key][j]['GDP']);
+                        x.push(data[key][j]['人口']);
+                        x.push(data[key][j]['第一产业']);
+                        x.push(data[key][j]['第二产业']);
+                        x.push(data[key][j]['第三产业']);
+
+                        data1[key] = x;
+                    }
+                }
+            }
+            updateMap(); // 获取数据后初始化地图
+        });
+        });
+
+    </script>
+</body>
+</html>

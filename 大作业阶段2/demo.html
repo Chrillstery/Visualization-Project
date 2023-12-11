@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ECharts 主题河流示例</title>
+    <!-- 引入 ECharts 文件 -->
+    <script src="js/echarts.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <!--    下拉列表的样式-->
+
+</head>
+<body>
+<!-- 创建下列列表 -->
+<div class="custom-select" style="top: -1000px">
+    <select id="ProvinceSelect"></select>
+</div>
+
+<script>
+    var provinces = ['北京市', '上海市', '天津市', '重庆市', '河北省', '山西省', '辽宁省', '吉林省', '黑龙江省', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省', '湖北省', '湖南省', '广东省', '海南省', '四川省', '贵州省', '云南省', '陕西省', '甘肃省', '青海省', '台湾省', '内蒙古自治区', '广西壮族自治区', '西藏自治区', '宁夏回族自治区', '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区'];
+    var select = document.getElementById('ProvinceSelect');
+    provinces.forEach(function (item) {
+        var option = document.createElement('option');
+        option.text = item;
+        select.append(option);
+    });
+</script>
+
+<div id="chart" style="width: 1080px; height: 720px;"></div>
+
+<script>
+    var data1 = {};
+    var name = 'themeriver';
+    var provinceSelect = '北京市'; //默认北京市
+    // 初始化 ECharts 实例
+    var chart = echarts.init(document.getElementById('chart'));
+
+    $.get('data1.json', function (data) {//读取数据并转换为echarts格式
+        for (var key in data) {
+            var tmp = [];
+            for (var year in data[key]) {
+                var item = [];
+                item.push(String(parseInt(year)) + '/01/01');
+                item.push(data[key][year]["GDP"]);
+                item.push("GDP");
+                tmp.push(item)
+            }
+            for (var year in data[key]) {
+                var item = [];
+                item.push(String(parseInt(year)) + '/01/01');
+                item.push(data[key][year]["人口"]);
+                item.push("人口");
+                tmp.push(item)
+            }
+            for (var year in data[key]) {
+                var item = [];
+                item.push(String(parseInt(year)) + '/01/01');
+                item.push(data[key][year]["第一产业"]);
+                item.push("第一产业");
+                tmp.push(item)
+            }
+            for (var year in data[key]) {
+                var item = [];
+                item.push(String(parseInt(year)) + '/01/01');
+                item.push(data[key][year]["第二产业"]);
+                item.push("第二产业");
+                tmp.push(item)
+            }
+            for (var year in data[key]) {
+                var item = [];
+                item.push(String(parseInt(year)) + '/01/01');
+                item.push(data[key][year]["第三产业"]);
+                item.push("第三产业");
+                tmp.push(item)
+            }
+            data1[key] = tmp;
+        }
+
+        console.log(data1[provinceSelect]);
+        var data2 = data1[provinceSelect];
+
+        // 定义主题河流的配置项
+        var option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: {
+                        color: 'rgba(0,0,0,0.2)',
+                        width: 1,
+                        type: 'solid'
+                    }
+                }
+            },
+            legend: {
+                data: ['GDP', '人口', '第一产业', '第二产业', '第三产业']
+            },
+            singleAxis: {
+                top: 50,
+                bottom: 50,
+                axisTick: {},
+                axisLabel: {},
+                type: 'time',
+                axisPointer: {
+                    animation: true,
+                    label: {
+                        show: true
+                    }
+                },
+                splitLine: {
+                    show: true,
+                    lineStyle: {
+                        type: 'dashed',
+                        opacity: 0.2
+                    }
+                }
+            },
+            series: [
+                {
+                    type: 'themeRiver',
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 20,
+                            shadowColor: 'rgba(0, 0, 0, 0.8)'
+                        }
+                    },
+                    data: data2
+                }
+            ]
+        };
+        // 使用配置项显示图表
+        chart.setOption(option);
+
+    });
+
+    function updateMap(ps){
+        var data2 = data1[ps];
+        console.log(data2);
+        var option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: {
+                        color: 'rgba(0,0,0,0.2)',
+                        width: 1,
+                        type: 'solid'
+                    }
+                }
+            },
+            legend: {
+                data: ['GDP', '人口', '第一产业', '第二产业', '第三产业']
+            },
+            singleAxis: {
+                top: 50,
+                bottom: 50,
+                axisTick: {},
+                axisLabel: {},
+                type: 'time',
+                axisPointer: {
+                    animation: true,
+                    label: {
+                        show: true
+                    }
+                },
+                splitLine: {
+                    show: true,
+                    lineStyle: {
+                        type: 'dashed',
+                        opacity: 0.2
+                    }
+                }
+            },
+            series: [
+                {
+                    type: 'themeRiver',
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 20,
+                            shadowColor: 'rgba(0, 0, 0, 0.8)'
+                        }
+                    },
+                    data: data2
+                }
+            ]
+        };
+        // 使用配置项显示图表
+        chart.setOption(option);
+    }
+    $('#ProvinceSelect').on('change', function() {
+    // 获取选中的数据名称
+        provinceSelect = $(this).val();
+        console.log(provinceSelect)
+    // 根据选择的数据名称更新 visualMap
+        updateMap(provinceSelect);
+        });
+
+
+</script>
+</body>
+</html>
+
